@@ -39,14 +39,6 @@ jobs:
           exit_code=$?
           set -e
           
-          # Read the output
-          if [ -f doc_check_output.txt ]; then
-            output=$(cat doc_check_output.txt)
-            echo "DOC_CHECK_OUTPUT<<EOF" >> $GITHUB_OUTPUT
-            echo "$output" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-          fi
-          
           # Set flags based on content
           if grep -q "Feature changes detected" doc_check_output.txt; then
             echo "has_features=true" >> $GITHUB_OUTPUT
@@ -71,8 +63,16 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const output = `${{ steps.doc_check.outputs.DOC_CHECK_OUTPUT }}`;
+            const fs = require('fs');
             const hasDocUpdates = '${{ steps.doc_check.outputs.has_doc_updates }}' === 'true';
+            
+            // Read the output file directly instead of using GitHub outputs
+            let output = '';
+            try {
+              output = fs.readFileSync('doc_check_output.txt', 'utf8');
+            } catch (error) {
+              output = 'Error reading documentation check output';
+            }
             
             let body = '🤖 **Documentation Check - Action Recommended**\n\n';
             body += '**Feature changes detected in this PR that may need documentation:**\n\n';
