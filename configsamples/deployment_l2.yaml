@@ -3,6 +3,10 @@ kind: IPAddressPool
 metadata:
   name: example
   namespace: metallb-system
+  labels:
+    # TestWorkflowField - Test field to trigger documentation workflow
+    # This demonstrates the doc-check workflow detecting new samples changes
+    testWorkflowField: ""
 spec:
   addresses:
   - 192.168.10.0/24

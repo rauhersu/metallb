@@ -161,32 +161,33 @@ class DocumentationChecker:
         # Check API changes
         if api_changes['new_crd_fields']:
             has_feature_changes = True
-            feature_details.append("🔧 **New CRD fields detected:**")
+            feature_details.append("New CRD fields detected:")
             for change in api_changes['new_crd_fields']:
                 feature_details.append(f"  - {change}")
 
         if api_changes['new_crd_files']:
             has_feature_changes = True
-            feature_details.append("📝 **New CRD files detected:**")
+            feature_details.append("New CRD files detected:")
             for change in api_changes['new_crd_files']:
                 feature_details.append(f"  - {change}")
 
         if api_changes['spec_changes']:
             has_feature_changes = True
-            feature_details.append("⚙️ **New API specifications detected:**")
+            feature_details.append("New API specifications detected:")
             for change in api_changes['spec_changes']:
                 feature_details.append(f"  - {change}")
 
-        # Check config changes
+        # Check config samples changes
         if config_changes['new_config_samples']:
             has_feature_changes = True
-            feature_details.append("📋 **New configuration samples detected:**")
+            feature_details.append("New configuration samples detected:")
             for change in config_changes['new_config_samples']:
                 feature_details.append(f"  - {change}")
 
+        # Check Helm chart changes
         if config_changes['helm_chart_changes']:
             has_feature_changes = True
-            feature_details.append("⛵ **Helm chart changes detected:**")
+            feature_details.append("New Helm chart changes detected:")
             for change in config_changes['helm_chart_changes'][:5]:  # Limit to first 5
                 feature_details.append(f"  - {change}")
             if len(config_changes['helm_chart_changes']) > 5:
@@ -206,7 +207,7 @@ class DocumentationChecker:
             doc_sections_updated.append("Examples")
 
         if doc_sections_updated:
-            self.info_messages.append(f"📚 **Documentation updated:** {', '.join(doc_sections_updated)}")
+            self.info_messages.append(f"Documentation updated: {', '.join(doc_sections_updated)}")
 
         return has_feature_changes, feature_details
 
@@ -214,23 +215,26 @@ class DocumentationChecker:
         """Generate documentation recommendations based on detected changes."""
         recommendations = []
 
+        # API
         if any("CRD" in detail or "API" in detail for detail in feature_details):
             recommendations.extend([
-                "📖 Consider updating API documentation in `website/content/apis/`",
-                "📝 Consider updating configuration guides in `website/content/configuration/`",
-                "💡 Consider adding usage examples in `website/content/usage/` or `configsamples/`"
+                "  - Consider updating API documentation in `website/content/apis/`",
+                "  - Consider updating configuration guides in `website/content/configuration/`",
+                "  - Consider adding usage examples in `website/content/usage/` or `configsamples/`"
             ])
 
+        # Helm
         if any("Helm" in detail for detail in feature_details):
             recommendations.extend([
-                "⛵ Consider documenting new Helm options in configuration guides",
-                "📋 Consider updating installation documentation if needed"
+                "  - Consider documenting new Helm options in configuration guides",
+                "  - Consider updating installation documentation if needed"
             ])
 
+        # Samples
         if any("samples" in detail for detail in feature_details):
             recommendations.extend([
-                "📚 Consider documenting the new configuration patterns",
-                "🔗 Consider adding references to the new examples in usage guides"
+                "  - Consider documenting the new configuration patterns",
+                "  - Consider adding references to the new examples in usage guides"
             ])
 
         return recommendations
@@ -246,7 +250,7 @@ class DocumentationChecker:
             print("✅ No user-facing feature changes detected. Documentation check passed.")
             return 0
 
-        print("🔍 **Feature changes detected:**")
+        print("🔍 Feature changes detected:")
         print()
         for detail in feature_details:
             print(detail)
@@ -259,14 +263,11 @@ class DocumentationChecker:
         recommendations = self.generate_recommendations(feature_details)
 
         if recommendations:
-            print("💡 **Documentation Recommendations:**")
+            print("💡 Documentation Recommendations:")
             print()
             for rec in recommendations:
                 print(rec)
             print()
-
-        print("⚠️  **This is a non-blocking check.** Please consider updating documentation for new features.")
-        print("📝 If documentation updates are planned for a follow-up PR, please mention it in the PR description.")
 
         return 0  # Non-blocking
 
