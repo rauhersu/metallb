@@ -2,6 +2,9 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# TestWorkflowField - Test field to trigger documentation workflow
+# This demonstrates the doc-check workflow detecting new helm changes
+TestWorkflowField: ""
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
