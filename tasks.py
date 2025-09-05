@@ -833,6 +833,7 @@ def get_available_ips(ip_family=None):
                 )
             return "%s-%s" % (service_ip_range_start.ip, service_ip_range_end.ip)
 
+
 @task(
     help={
         "name": "name of the kind cluster to delete.",
@@ -1182,6 +1183,7 @@ def helmdocs(ctx, env="container"):
     else:
         raise Exit(message="Unsupported helm-docs environment: {}".format(env))
 
+
 @task(
     help={
         "name": "name of the kind cluster to test (only kind uses).",
@@ -1264,17 +1266,19 @@ def e2etest(
         env_config = detect_dev_env_config(name)
         filters = generate_test_filters(env_config)
 
-        print(f"\n📊 Auto-detected environment: BGP Type: {env_config['bgp_type']}, "
-              f"IP Family: {env_config['ip_family']}, "
-              f"Protocol: {env_config['protocol']}, "
-              f"Prometheus: {env_config['with_prometheus']}")
+        print(
+            f"\n📊 Auto-detected environment: BGP Type: {env_config['bgp_type']}, "
+            f"IP Family: {env_config['ip_family']}, "
+            f"Protocol: {env_config['protocol']}, "
+            f"Prometheus: {env_config['with_prometheus']}"
+        )
 
         if skip:
             print(f"🔧 User-provided skip patterns override auto-detection: {skip}")
-        elif filters['skip']:
+        elif filters["skip"]:
             print(f"⏭️  Auto-skip patterns: {filters['skip']}")
             # Use auto-detected patterns only if user didn't provide skip
-            ginkgo_skip = '--skip="' + filters['skip'] + '"'
+            ginkgo_skip = '--skip="' + filters["skip"] + '"'
         else:
             print("✅ No tests will be skipped")
 
@@ -1695,15 +1699,18 @@ def detect_bgp_type(namespace="metallb-system"):
     bgp_type_result = run(
         f"{kubectl_path} get deployment controller -n {namespace} "
         f"-o jsonpath='{{.spec.template.spec.containers[0].env[?(@.name==\"METALLB_BGP_TYPE\")].value}}'",
-        hide=True, warn=True
+        hide=True,
+        warn=True,
     )
 
     if bgp_type_result.ok:
         value = bgp_type_result.stdout.strip()
         # 'native' if not set (follows the Go code behaviour)
-        return value if value else 'native'
+        return value if value else "native"
     else:
-        raise Exception(f"Cannot detect BGP type from controller deployment in {namespace} namespace: command failed")
+        raise Exception(
+            f"Cannot detect BGP type from controller deployment in {namespace} namespace: command failed"
+        )
 
 
 def detect_prometheus():
@@ -1717,15 +1724,20 @@ def detect_ip_family(namespace="metallb-system"):
     addresses_result = run(
         f"{kubectl_path} get ipaddresspool -n {namespace} "
         f"-o jsonpath='{{.items[*].spec.addresses[*]}}'",
-        hide=True, warn=True
+        hide=True,
+        warn=True,
     )
 
     if not addresses_result.ok:
-        raise Exception(f"Cannot detect IP family from ipaddresspool resource in {namespace} namespace: command failed")
+        raise Exception(
+            f"Cannot detect IP family from ipaddresspool resource in {namespace} namespace: command failed"
+        )
 
     addresses = addresses_result.stdout.strip().split()
     if not addresses:
-        raise Exception("Cannot detect IP family from ipaddresspool resource: no addresses found")
+        raise Exception(
+            "Cannot detect IP family from ipaddresspool resource: no addresses found"
+        )
 
     has_ipv4 = False
     has_ipv6 = False
@@ -1733,8 +1745,8 @@ def detect_ip_family(namespace="metallb-system"):
     for address in addresses:
         try:
             # Handle IP ranges (e.g., "172.18.0.9-172.18.0.19")
-            if '-' in address:
-                start_ip, end_ip = address.split('-', 1)
+            if "-" in address:
+                start_ip, end_ip = address.split("-", 1)
                 start = ipaddress.ip_address(start_ip.strip())
                 end = ipaddress.ip_address(end_ip.strip())
 
@@ -1742,7 +1754,9 @@ def detect_ip_family(namespace="metallb-system"):
                 if start.version != end.version:
                     raise Exception(f"IP range '{address}' contains mixed IP versions")
                 if start > end:
-                    raise Exception(f"IP range '{address}' has start IP greater than end IP")
+                    raise Exception(
+                        f"IP range '{address}' has start IP greater than end IP"
+                    )
 
                 # Use the start ip as a representative address for version checking
                 address = start
@@ -1754,16 +1768,20 @@ def detect_ip_family(namespace="metallb-system"):
                 has_ipv6 = True
 
         except ValueError as e:
-            raise Exception(f"Invalid IP address or network '{address}' found in ipaddresspool: {e}")
+            raise Exception(
+                f"Invalid IP address or network '{address}' found in ipaddresspool: {e}"
+            )
 
     if has_ipv4 and has_ipv6:
-        return 'dual'
+        return "dual"
     elif has_ipv6:
-        return 'ipv6'
+        return "ipv6"
     elif has_ipv4:
-        return 'ipv4'
+        return "ipv4"
     else:
-        raise Exception("Cannot detect IP family from ipaddresspool resource: unmatched ip family addresses")
+        raise Exception(
+            "Cannot detect IP family from ipaddresspool resource: unmatched ip family addresses"
+        )
 
 
 def detect_protocol(namespace="metallb-system"):
@@ -1772,21 +1790,23 @@ def detect_protocol(namespace="metallb-system"):
         f"{kubectl_path} get bgppeer -n {namespace} "
         f"-o jsonpath='{{.items[*].metadata.name}}'",
         hide=True,
-        warn=True
+        warn=True,
     )
     l2adv_result = run(
         f"{kubectl_path} get l2advertisement -n {namespace} "
         f"-o jsonpath='{{.items[*].metadata.name}}'",
         hide=True,
-        warn=True
+        warn=True,
     )
 
     if bgppeer_result.ok and bgppeer_result.stdout.strip():
-        return 'bgp'
+        return "bgp"
     elif l2adv_result.ok and l2adv_result.stdout.strip():
-        return 'layer2'
+        return "layer2"
     else:
-        raise Exception(f"Cannot detect protocol from bgppeer or l2advertisement resources in {namespace} namespace")
+        raise Exception(
+            f"Cannot detect protocol from bgppeer or l2advertisement resources in {namespace} namespace"
+        )
 
 
 def detect_dev_env_config(cluster_name="kind"):
@@ -1794,10 +1814,10 @@ def detect_dev_env_config(cluster_name="kind"):
 
     try:
         config = {
-            'bgp_type': detect_bgp_type(),
-            'ip_family': detect_ip_family(),
-            'with_prometheus': detect_prometheus(),
-            'protocol': detect_protocol()
+            "bgp_type": detect_bgp_type(),
+            "ip_family": detect_ip_family(),
+            "with_prometheus": detect_prometheus(),
+            "protocol": detect_protocol(),
         }
 
     except Exception as e:
@@ -1808,51 +1828,57 @@ def detect_dev_env_config(cluster_name="kind"):
 
 def bgp_type_skip_patterns(bgp_type):
     """Return skip patterns based on BGP type."""
-    if bgp_type == 'native':
-        return ['FRR', 'FRR-MODE', 'FRRK8S-MODE', 'BFD', 'VRF']
-    elif bgp_type == 'frr':
-        return ['FRRK8S-MODE']
-    elif bgp_type in ['frr-k8s', 'frr-k8s-external']:
-        return ['FRR-MODE']
+    if bgp_type == "native":
+        return ["FRR", "FRR-MODE", "FRRK8S-MODE", "BFD", "VRF"]
+    elif bgp_type == "frr":
+        return ["FRRK8S-MODE"]
+    elif bgp_type in ["frr-k8s", "frr-k8s-external"]:
+        return ["FRR-MODE"]
     return []
+
 
 def ip_family_skip_patterns(ip_family, bgp_type):
     """Return skip patterns based on IP family and BGP type."""
-    if ip_family == 'ipv4':
-        return ['IPV6', 'DUALSTACK']
-    elif ip_family == 'ipv6':
-        skip_patterns = ['IPV4', 'DUALSTACK']
-        if bgp_type == 'native':
+    if ip_family == "ipv4":
+        return ["IPV6", "DUALSTACK"]
+    elif ip_family == "ipv6":
+        skip_patterns = ["IPV4", "DUALSTACK"]
+        if bgp_type == "native":
             # Native BGP doesn't support IPv6
-            skip_patterns.append('BGP')
+            skip_patterns.append("BGP")
         return skip_patterns
-    elif ip_family == 'dual':
+    elif ip_family == "dual":
         # Skip IPv6-only tests in dual stack (ipv4 and ipv6)
-        return ['IPV6']
+        return ["IPV6"]
     return []
+
 
 def protocol_skip_patterns(protocol):
     """Return skip patterns based on protocol."""
-    if protocol == 'layer2':
-        return ['BGP']
-    elif protocol == 'bgp':
-        return ['L2']
+    if protocol == "layer2":
+        return ["BGP"]
+    elif protocol == "bgp":
+        return ["L2"]
     return []
+
 
 def prometheus_skip_patterns(with_prometheus):
     """Return skip patterns based on Prometheus presence."""
     if not with_prometheus:
-        return ['metrics']
+        return ["metrics"]
     return []
+
 
 def generate_test_filters(config):
     """Generate ginkgo focus/skip patterns based on environment config."""
     skip_patterns = []
-    skip_patterns.extend(bgp_type_skip_patterns(config.get('bgp_type')))
-    skip_patterns.extend(ip_family_skip_patterns(config.get('ip_family'), config.get('bgp_type')))
-    skip_patterns.extend(protocol_skip_patterns(config.get('protocol')))
-    skip_patterns.extend(prometheus_skip_patterns(config.get('with_prometheus')))
+    skip_patterns.extend(bgp_type_skip_patterns(config.get("bgp_type")))
+    skip_patterns.extend(
+        ip_family_skip_patterns(config.get("ip_family"), config.get("bgp_type"))
+    )
+    skip_patterns.extend(protocol_skip_patterns(config.get("protocol")))
+    skip_patterns.extend(prometheus_skip_patterns(config.get("with_prometheus")))
     return {
-        'skip': '|'.join(skip_patterns) if skip_patterns else '',
-        'focus': ''  # Could add focus logic later
+        "skip": "|".join(skip_patterns) if skip_patterns else "",
+        "focus": "",  # Could add focus logic later
     }
