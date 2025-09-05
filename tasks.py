@@ -1685,6 +1685,11 @@ def is_ipv4(addr):
     return ip.version == 4
 
 
+def is_ipv6(addr):
+    ip = ipaddress.ip_network(addr)
+    return ip.version == 6
+
+
 def detect_bgp_type(namespace="metallb-system"):
     """Detect BGP type from controller deployment."""
     bgp_type_result = run(
@@ -1722,19 +1727,17 @@ def detect_ip_family(namespace="metallb-system"):
     if not addresses:
         raise Exception("Cannot detect IP family from ipaddresspool resource: no addresses found")
 
-    ipv6_pattern = r'''
-        (?:
-        [0-9a-fA-F]{0,4}:          # Hex digits followed by colon
-        ){2,7}                     # At least 2 groups (minimum valid IPv6)
-        [0-9a-fA-F]{0,4}           # Final group
-        (?:/\d{1,3})?              # Optional CIDR prefix
-        |
-        ::(?:[0-9a-fA-F]{0,4}:?)*  # Compressed format starting with ::
-        (?:/\d{1,3})?              # Optional CIDR prefix
-    '''
-
-    has_ipv4 = any(re.search(r'\d+\.\d+\.\d+\.\d+', address) for address in addresses)
-    has_ipv6 = any(re.search(ipv6_pattern, address, re.VERBOSE) for address in addresses)
+    has_ipv4 = False
+    has_ipv6 = False
+    
+    for address in addresses:
+        try:
+            if is_ipv4(address):
+                has_ipv4 = True
+            elif is_ipv6(address):
+                has_ipv6 = True
+        except ValueError as e:
+            raise Exception(f"Invalid IP address or network '{address}' found in ipaddresspool: {e}")
 
     if has_ipv4 and has_ipv6:
         return 'dual'
