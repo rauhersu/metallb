@@ -1729,13 +1729,30 @@ def detect_ip_family(namespace="metallb-system"):
 
     has_ipv4 = False
     has_ipv6 = False
-    
+
     for address in addresses:
         try:
+            # Handle IP ranges (e.g., "172.18.0.9-172.18.0.19")
+            if '-' in address:
+                start_ip, end_ip = address.split('-', 1)
+                start = ipaddress.ip_address(start_ip.strip())
+                end = ipaddress.ip_address(end_ip.strip())
+
+                # Both IPs must be same version and start <= end
+                if start.version != end.version:
+                    raise Exception(f"IP range '{address}' contains mixed IP versions")
+                if start > end:
+                    raise Exception(f"IP range '{address}' has start IP greater than end IP")
+
+                # Use the start ip as a representative address for version checking
+                address = start
+
+            # Handle single IPs or CIDR networks
             if is_ipv4(address):
                 has_ipv4 = True
             elif is_ipv6(address):
                 has_ipv6 = True
+
         except ValueError as e:
             raise Exception(f"Invalid IP address or network '{address}' found in ipaddresspool: {e}")
 
